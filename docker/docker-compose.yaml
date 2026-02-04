@@ -1,22 +1,19 @@
 services:
-    beets-flask:
-        image: pspitzner/beets-flask:stable
-        restart: unless-stopped
-        ports:
-            - "5001:5001"
-        environment:
-            # Change to your timezone
-            TZ: "Europe/Berlin"
-            # 502 is default on macos, 1000 on linux
-            USER_ID: 1000
-            GROUP_ID: 1000
-            # Optional: Add extra groups to the beetle user for file permissions
-            # Format: "group_name1:gid1,group_name2:gid2"
-            # Example: EXTRA_GROUPS: "nas_shares:1001,media:1002"
-        volumes:
-            - /wherever/config/:/config
-            # for music folders, match paths inside and out of container!
-            - /music_path/inbox/:/music_path/inbox/
-            - /music_path/clean/:/music_path/clean/
-            # If you want to persist the logs, you can mount a logs directory
-            # - /wherever/logs/:/logs
+  beets-flask:
+    container_name: beets-flask
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - '5001:5001'
+    volumes:
+      - ./config/:/config
+      - /Volumes/Price_music/inbox:/music/inbox
+      - /Volumes/Price_music:/music/imported
+      - ./logs/:/logs
+    environment:
+      TZ: America/Toronto
+      USER_ID: 502
+      GROUP_ID: 140

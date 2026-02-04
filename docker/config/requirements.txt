@@ -1,0 +1,4 @@
+beets[discogs,embedart,fetchart,lastgenre,lyrics,beets-check]
+langdetect
+beets-filetote
+git+https://github.com/geigerzaehler/beets-check.git@main
