@@ -7,6 +7,10 @@ static/bootstrap-icons/*
 docker-compose-custom.yaml
 local
 
+# Docker config files (may contain sensitive data)
+docker/config/
+docker/logs/
+
 **/package-lock.json
 **/vite.config.ts.timestamp-*.mjs
 *.code-workspace
