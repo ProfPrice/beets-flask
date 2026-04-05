@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:blog.peelman.us)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:www.noodlesoft.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(chmod:*)",
+      "Bash(plutil:*)"
+    ]
+  }
+}

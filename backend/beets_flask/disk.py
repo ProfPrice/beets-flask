@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
@@ -431,14 +432,38 @@ def is_within_multi_dir(path: Path | str) -> bool:
 def dir_size(path: Path) -> int:
     """Size of a dir in bytes, including content."""
     try:
+        # BusyBox's du doesn't support --exclude, so we use find + stat instead
+        # Exclude macOS system directories that cause "Operation not permitted" errors
+        excluded_dirs = [
+            ".Spotlight-V100",
+            ".Trashes",
+            ".fseventsd",
+            ".TemporaryItems",
+            ".DocumentRevisions-V100",
+        ]
+
+        # Build find command to exclude problematic directories
+        find_cmd = ["find", str(path.resolve())]
+        for excluded in excluded_dirs:
+            find_cmd.extend(["!", "-path", f"*/{excluded}*"])
+        find_cmd.extend(["-type", "f", "-exec", "stat", "-c", "%s", "{}", ";"])
+
         result = subprocess.run(
-            ["du", "-sb", str(path.resolve())],
+            find_cmd,
             capture_output=True,
             text=True,
-            check=True,
+            check=False,  # Don't raise on non-zero exit (some files may be inaccessible)
         )
-        size = int(result.stdout.split()[0])
-        return size
+
+        # Sum up all the file sizes
+        if result.stdout.strip():
+            total = 0
+            for line in result.stdout.strip().split("\n"):
+                if line.strip().isdigit():
+                    total += int(line.strip())
+            return total
+        else:
+            return 0
     except Exception as e:
         # this happens e.g. if the directory does not exist.
         log.error(e)
@@ -469,6 +494,51 @@ def clear_cache():
     path_to_folder.cache.clear()  # type: ignore
     dir_size.cache.clear()  # type: ignore
     dir_files.cache.clear()  # type: ignore
+
+
+_MACOS_SYSTEM_DIRS = {
+    ".Spotlight-V100",
+    ".Trashes",
+    ".fseventsd",
+    ".TemporaryItems",
+    ".DocumentRevisions-V100",
+}
+
+
+def remove_macos_metadata(path: Path | str) -> None:
+    """Remove macOS metadata files from a directory tree before deletion.
+
+    Removes ._* (AppleDouble), .DS_Store files, and known macOS system
+    directories. These files are created by macOS on external volumes and
+    can have restrictive permissions that cause shutil.rmtree to fail.
+    """
+    if isinstance(path, str):
+        path = Path(path)
+
+    if not path.is_dir():
+        return
+
+    # Walk bottom-up so we can safely remove files/dirs as we go
+    for dirpath, dirnames, filenames in os.walk(path, topdown=False):
+        # Remove ._* and .DS_Store files
+        for name in filenames:
+            if name == ".DS_Store" or name.startswith("._"):
+                fp = os.path.join(dirpath, name)
+                try:
+                    os.remove(fp)
+                    log.debug(f"Removed macOS metadata file: {fp}")
+                except OSError as e:
+                    log.warning(f"Could not remove macOS metadata file {fp}: {e}")
+
+        # Remove macOS system directories
+        for name in dirnames:
+            if name in _MACOS_SYSTEM_DIRS:
+                dp = os.path.join(dirpath, name)
+                try:
+                    shutil.rmtree(dp)
+                    log.debug(f"Removed macOS metadata directory: {dp}")
+                except OSError as e:
+                    log.warning(f"Could not remove macOS metadata directory {dp}: {e}")
 
 
 __all__ = ["dir_size", "fs_item_from_path"]

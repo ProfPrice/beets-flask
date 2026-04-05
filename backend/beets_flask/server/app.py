@@ -6,7 +6,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
-from quart import Quart
+from quart import Quart, request
 
 from ..config.flask_config import ServerConfig, init_server_config
 from ..logger import log
@@ -25,6 +25,33 @@ def create_app(config: str | ServerConfig | None = None) -> Quart:
     # make routes with and without trailing slahes the same
     app.url_map.strict_slashes = False
     app.json = CustomProvider(app)
+
+    # Add CORS headers to all responses
+    @app.after_request
+    async def add_cors_headers(response):
+        # Allow requests from OrbStack domain and localhost
+        origin = request.headers.get('Origin', '')
+        allowed_origins = [
+            'https://beets-flask.docker.orb.local',
+            'http://localhost:5001',
+            'http://127.0.0.1:5001',
+        ]
+
+        # Check if origin is in allowed list or ends with .docker.orb.local
+        if origin in allowed_origins or origin.endswith('.docker.orb.local'):
+            response.headers['Access-Control-Allow-Origin'] = origin
+        else:
+            # Fallback to wildcard for development
+            response.headers['Access-Control-Allow-Origin'] = '*'
+
+        response.headers['Access-Control-Allow-Methods'] = (
+            'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+        )
+        response.headers['Access-Control-Allow-Headers'] = (
+            'Content-Type, Authorization, X-Requested-With'
+        )
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        return response
 
     global socketio
     # app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)

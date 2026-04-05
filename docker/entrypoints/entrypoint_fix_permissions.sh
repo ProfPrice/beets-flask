@@ -17,6 +17,8 @@ if [ ! -z "$USER_ID" ] && [ ! -z "$GROUP_ID" ]; then
     find /home/beetle ! -user beetle -exec chown beetle:beetle {} +
     find /logs ! -user beetle -exec chown beetle:beetle {} +
     find /repo ! -user beetle -exec chown beetle:beetle {} +
+    # Fix permissions on music volumes (may be on external/removable disks)
+    find /music ! -user beetle -exec chown beetle:beetle {} + 2>/dev/null || true
     log "Done fixing permissions"
 else
     log "No USER_ID and GROUP_ID set, skipping permission updates"

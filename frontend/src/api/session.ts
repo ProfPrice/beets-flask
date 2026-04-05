@@ -424,7 +424,7 @@ export const addCandidateMutationOptions: UseMutationOptions<
 async function waitForJobUpdate({
     socket,
     jobRef,
-    timeout = 30_000,
+    timeout = 300_000, // 5 minutes - increased from 30 seconds to handle long-running imports
 }: {
     socket: StatusSocket | null;
     jobRef: string | string[];
@@ -446,7 +446,7 @@ async function waitForJobUpdate({
             socket.off('job_status_update', handleUpdate);
             reject(
                 new Error(
-                    'Timeout: Waiting for a job update took longer than 30 seconds'
+                    `Timeout: Waiting for a job update took longer than ${timeout / 1000} seconds`
                 )
             );
         }, timeout);

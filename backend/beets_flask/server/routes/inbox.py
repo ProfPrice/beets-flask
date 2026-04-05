@@ -1,5 +1,6 @@
 import os
 import shutil
+import stat
 from datetime import datetime
 from pathlib import Path
 from typing import TypedDict
@@ -17,6 +18,7 @@ from beets_flask.disk import (
     dir_size,
     fs_item_from_path,
     path_to_folder,
+    remove_macos_metadata,
 )
 from beets_flask.importer.progress import Progress
 from beets_flask.logger import log
@@ -182,11 +184,27 @@ async def delete():
             )
 
     # Delete the folders
+    def _on_rmtree_error(func, path, exc_info):
+        """Handle permission errors during rmtree on external/removable volumes.
+
+        macOS creates metadata files (.DS_Store, ._*, .Spotlight-V100, etc.)
+        on external volumes that may have restrictive permissions. Attempt to
+        fix permissions and retry the operation.
+        """
+        if not os.path.exists(path):
+            return
+        try:
+            os.chmod(path, stat.S_IRWXU)
+            func(path)
+        except Exception:
+            log.warning(f"Could not remove {path} during inbox deletion: {exc_info[1]}")
+
     for f in folders:
         if isinstance(f, Archive):
             os.remove(f.full_path)
         elif isinstance(f, Folder):
-            shutil.rmtree(f.full_path)
+            remove_macos_metadata(f.full_path)
+            shutil.rmtree(f.full_path, onerror=_on_rmtree_error)
         else:
             raise InvalidUsageException(
                 f"Cannot delete object of type {type(f)} at {f.full_path}"

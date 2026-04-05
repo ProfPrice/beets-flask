@@ -105,6 +105,7 @@ USER root
 ENTRYPOINT [ \
     "/bin/sh", "-c", \
     "./docker/entrypoints/entrypoint_fix_permissions.sh && \
+    ./docker/entrypoints/entrypoint_clean_macos_metadata.sh && \
     su beetle -c ./docker/entrypoints/entrypoint_dev.sh" \
     ]
 
@@ -159,6 +160,7 @@ USER root
 ENTRYPOINT [ \
     "/bin/sh", "-c", \
     "/repo/entrypoint_fix_permissions.sh && \
+    /repo/entrypoint_clean_macos_metadata.sh && \
     /repo/entrypoint_user_scripts.sh && \
     su beetle -c /repo/entrypoint.sh" \
     ]

@@ -12,8 +12,14 @@ services:
       - ./config/:/config
       - /Volumes/Price_music/inbox:/music/inbox
       - /Volumes/Price_music:/music/imported
+      - /Volumes/Price_music/tmp:/music/tmp
       - ./logs/:/logs
     environment:
       TZ: America/Toronto
       USER_ID: 502
       GROUP_ID: 140
+      TMPDIR: /music/tmp
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
